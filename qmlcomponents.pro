@@ -3,12 +3,12 @@ CONFIG += sailfishapp_qml
 
 DISTFILES = \
     helpers/Dates.qml \
-    models/SortedModel.qml \
+    ui/DraggableItem.qml \
     requester/Requester.qml \
     requester/requester.js \
+    models/SortedModel.qml \
     storage/Storage.qml \
-    qmldir \
-    ui/DraggableItem.qml
+    qmldir
 
 helpers.files = helpers
 #helpers.path = $${DEPLOYMENT_PATH}
@@ -16,7 +16,7 @@ models.files = models
 requester.files = requester
 storage.files = storage
 
-RESOURCES = helpers + models + requester + storage
+RESOURCES = helpers models requester storage
 
 #OTHER_FILES = qmldir
 #qmldir.files += $$_PRO_FILE_PWD_/qmldir
