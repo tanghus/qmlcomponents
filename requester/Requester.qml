@@ -10,7 +10,7 @@ import QtQuick 2.6
 
 WorkerScript {
     id: requester
-    source: Qt.resolvedUrl("../../scripts/requester.js")
+    source: Qt.resolvedUrl("./requester.js")
     property string url: ""
     property var order
     property int timeout: 10 // seconds.
