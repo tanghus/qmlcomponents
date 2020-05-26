@@ -3,3 +3,4 @@ singleton Dates 0.1 helpers/Dates.qml
 Requester 0.1 requester/Requester.qml
 Storage 0.1 storage/Storage.qml
 DraggableItem 0.1 ui/DraggableItem.qml
+SortedModel 0.1 models/SortedModel.qml
