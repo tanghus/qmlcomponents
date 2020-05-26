@@ -15,7 +15,7 @@ QtObject {
     property string dbName: ""
     property string tblName: ""
     property string dbDescription: dbName;
-    // TODO: Check what database version means
+    // NOTE: https://www3.sra.co.jp/qt/relation/doc/qtquick/qtquick-localstorage-qmlmodule.html#
     property string dbVersion: ""
     // Other Storage types which database schemas must be created.
     // E.g.
@@ -35,6 +35,7 @@ QtObject {
 
     /* IDEA: Add a property "depends" or something like like, to define Storages
       that must be instantiated first.
+      NOTE: Avoid race conditions where different storage types instantiate eachother.
       Storage {
           dbName: StandardPaths.data
           tblName: "programs"
@@ -68,28 +69,13 @@ QtObject {
         _hasTable = _getTable()
     }
 
-    function _formatException(e, cb) {
-        console.log(e.message)
-        console.trace()
-
-        if(cb) {
-            var response = {"status": "error", "message": e.message}
-            cb(response)
-        }
-
-        //throw e
-    }
-
     function _getDatabase(cb) {
         if(_dbObj) {
             return _dbObj
         }
 
         if(!typeof dbName === "string" || !dbName.trim()) {
-            _formatException(new Error(qsTr("No database name has been set")),
-                function(response) {
-                    if(cb) { cb(response) }
-            })
+           throw new Error(qsTr("No database name has been set"))
         } else {
             try {
                 _dbObj = LS.LocalStorage.openDatabaseSync(
@@ -98,9 +84,9 @@ QtObject {
                 if(cb) { cb({"status":"success","result":[]}) }
                 return _dbObj
             } catch(e) {
-                _formatException(e, function(response) {
-                    if(cb) { cb(response) }
-                })
+                console.error("Storage._getDatabase()", e)
+                console.trace()
+                throw e
             }
         }
     }
@@ -116,11 +102,7 @@ QtObject {
         }
 
         if(typeof tblName !== "string" || !tblName.trim()) {
-            _formatException(new Error(qsTr("No table name has been set")),
-                function(response) {
-                    if(cb) { cb(response) }
-            })
-            return false
+            throw new Error(qsTr("No table name has been set"))
         }
 
         var keyString = "", tmpColumns = []
@@ -138,11 +120,7 @@ QtObject {
                     col += columns[k].hasOwnProperty("default") ? " DEFAULT " + columns[k].default : "" // Default value
                     tmpColumns.push(col)
                 } else {
-                    _formatException(new Error(qsTr("Column definition must be either 'string' or 'object'.")),
-                        function(response) {
-                            if(cb) { cb(response) }
-                    })
-                    return false
+                   throw new Error(qsTr("Column definition must be either 'string' or 'object'."))
                 }
             }
         }
@@ -169,26 +147,74 @@ QtObject {
         return true // FIXME: Return usable value.
     }
 
+    /**
+     * WIP: Let set() take variable number of arguments and call
+     * setObject/setArrays according to parameter type.
+     */
+    function set() {
+        var args = Array.prototype.slice.call(arguments), cb
+        //console.log("Storage.set()", args.length)
+        //console.log("Storage.set()", JSON.stringify(args))
+
+        if(arguments.length >= 3 && Array.isArray(args[0])  && Array.isArray(args[1])) {
+            //console.log("Calling setArrays()")
+            cb = arguments[3]
+            setArrays(arguments[0], arguments[1], arguments[2], function(response) {
+                if(typeof cb === "function") { cb(response) }
+            })
+        } else if(typeof arguments[0] === "object") {
+            //console.log("Calling setObject()", arguments[0], arguments[1])
+            cb = arguments[1]
+            setObject(arguments[0], function(response) {
+                if(typeof cb === "function") { cb(response) }
+            })
+        }
+    }
+
+    /**
+     * function setObject() takes a JSON key/value object, compares
+     * with columns.keys and updates/inserts accordingly.
+     * @param object props An object the keys/values you want insert/update
+     * @param function cb Optional callback function.
+     * @return undefined or throws exception
+     */
+    function setObject(props, cb) {
+        if(typeof props !== "object") {
+           throw new Error(qsTr("The first argument must be a JSON object."))
+        }
+
+        var fields = [], values = []
+        var keys = Object.keys(props)
+        var _columns = Object.keys(columns)
+        for(var key in keys) {
+            if(_columns.indexOf(keys[key]) !== -1) {
+                fields.push(keys[key])
+                values.push(props[keys[key]])
+            }
+        }
+
+        setArrays(fields, values, {}, cb)
+    }
+
     /** Insert or update record. If you want to update, you will have to specify
      *    all fields and values or the result will be unpredictable.
      * @param array fields An array with the names of the fields
      *   in the table, you want to have inserted/updated
-     * @param array values An array of the values you want
-     *   insert/update
+     * @param array values An array of the values you want insert/update
      * @param function cb Optional callback function.
      * @return undefined or throws exception
      */
-    function set(fields, values, where, cb) {
+    function setArrays(fields, values, where, cb) {
         var i, updates, sql
 
         if(!Array.isArray(fields) || !Array.isArray(values)) {
-            _formatException(new Error(qsTr("The two first arguments must be arrays.")))
+           throw new Error(qsTr("The two first arguments must be arrays."))
         }
         if(fields.length !== values.length) {
-            _formatException(new Error(qsTr("The number of 'values' must match the number of 'fields'")))
+           throw new Error(qsTr("The number of 'values' must match the number of 'fields'"))
         }
         if(!fields.length > 0) {
-            _formatException(new Error(qsTr("At least one field to update must be specified")))
+           throw new Error(qsTr("At least one field to update must be specified"))
             return
         }
 
@@ -236,12 +262,7 @@ QtObject {
         } else if(typeof fields === "string") {
             sql += fields
         } else {
-            _formatException(
-                new Error(qsTr("fields must be a string or an array.")),
-                    function(response) {
-                        if(cb) { cb(response)
-                    }})
-            return
+           throw new Error(qsTr("fields must be a string or an array."))
         }
 
         sql += " FROM "+ tblName
@@ -296,10 +317,7 @@ QtObject {
     function count(where, cb) {
         var q = "COUNT()" // The response from SQLite uses it as key for result.
         if(typeof where === "function") {
-            _formatException(new Error(qsTr("The 'count()' function call is invalid")),
-                function(response) {
-                    if(cb) { cb(response) }
-            })
+           throw new Error(qsTr("The 'count()' function call is invalid"))
         }
 
         var sql = "SELECT " + q + " FROM " + tblName
@@ -336,10 +354,8 @@ QtObject {
                 }
             )
         } catch(e) {
-            console.error("ERROR: Storage.executeSQL()", sql) //JSON.stringify(result)) //
-            _formatException(e, function(response) {
-                if(cb) { cb(response) }
-            })
+            console.error("ERROR: Storage.executeSQL()", e, sql) //JSON.stringify(result)) //
+            console.trace()
         }
     }
 
@@ -368,46 +384,92 @@ QtObject {
     }
 
     function sanitize(key, value) {
-        var t = columns[key].hasOwnProperty("type") ? columns[key].type : columns[key]
-        //console.log("Storage.sanitize(t)", key, t, t === "TEXT", typeof value === "string")
+        //console.log("Storage.sanitize()", key, columns[key], value)
+        try {
+            var t = columns[key].hasOwnProperty("type") ? columns[key].type : columns[key]
+        } catch(e) {
+            console.log("GOTCHA!", e)
+            console.trace()
+        }
+
+        //console.log("Storage.sanitize()", t, JSON.stringify(columns))
         //console.log("Storage.sanitize(1)", key, columns[key], typeof value, value)
-        if(t === "TEXT" && typeof value === "string") {
-            if(value.indexOf("'") !== -1) {
-                value = value.replace("'", "\u2019")
+        if(t === "TEXT") {
+            if(typeof value === "string") {
+                value = sqlEscape(value) //value.replace(/'/gi, "\u2019")
+            } else {
+                value = String(value)
             }
+
             value = "'" + value + "'"
             //console.log("Storage.sanitize(2)", version, key, JSON.stringify(columns[key]), typeof value, value)
+        } else if(t === "INTEGER") {
+            value = Number(value)
         }
+
         return value
     }
 
-    /*
+    // https://stackoverflow.com/a/32648526/373007
+    function sqlEscape(str) {
+        if (typeof str != 'string')
+            return str;
+
+        return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (ch) {
+            switch (ch) {
+                case "\0":
+                    return "\\0";
+                case "\x08":
+                    return "\\b";
+                case "\x09":
+                    return "\\t";
+                case "\x1a":
+                    return "\\z";
+                case "\n":
+                    return "\\n";
+                case "\r":
+                    return "\\r";
+                case "'":
+                    return "''"
+                case "\"":
+                case "\\":
+                case "%":
+                    return "\\"+ch; // prepends a backslash to backslash, percent,
+                                      // and double/single quotes
+            }
+        });
+    }
+
+    /* IDEA/WIP:
      * In Env or DKTV keep track of instantiated Requesters to not
      * attempt to create tables more than once.
      * TODO: Move function to Env or DKTV. Or a separate singleton.
      */
     function _instantiateStorage(_type) {
-        if(Env.hasRequester()) {
+        if(Env.hasRequester(_type)) {
             console.error(qsTr("Storage has already instantiated a"), _type)
             return
         }
 
-        var component = Qt.createComponent(_type+".qml")
-        // TODO: Error handling.
-
         if(typeof _type !== "string") {
-            console.error(qsTr("Storage. Cannot create Storage of type:"), "'", typeof _type, "'", _type, component.errorString())
+            console.error(qsTr("Storage. Cannot create Storage of type:"), "'", typeof _type, "'", _type)
             console.trace()
             return -1;
         }
 
-        var object = component.createObject(null)
+        try {
+            var component = Qt.createComponent(_type+".qml")
+        } catch(e) {
+            console.error("Storage._instantiateStorage. Error:", e)
+        }
 
         if (component.status === Component.Error) {
             console.error(qsTr("Error creating:"), "'", type, "'", component.errorString())
             console.trace()
             return -1;
         }
+        var object = component.createObject(null)
+        // It's only needed to create/update the table.
         object.destroy()
 
         /*var incubator = component.incubateObject(parent, { x: 10, y: 10 });
