@@ -1,4 +1,4 @@
-module net.tanghus.qmlmodules
+module net.tanghus.qmlcomponents
 singleton Dates 0.1 ./helpers/Dates.qml
 Requester 0.1 ./requester/Requester.qml
 Storage 0.1 ./storage/Storage.qml
