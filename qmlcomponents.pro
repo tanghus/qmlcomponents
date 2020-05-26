@@ -1,4 +1,4 @@
-TEMPLATE = subdirs
+#TEMPLATE = subdirs
 CONFIG += sailfishapp_qml
 
 DISTFILES = \
@@ -7,7 +7,8 @@ DISTFILES = \
     requester/Requester.qml \
     requester/requester.js \
     storage/Storage.qml \
-    qmldir
+    qmldir \
+    ui/DraggableItem.qml
 
 helpers.files = helpers
 #helpers.path = $${DEPLOYMENT_PATH}
