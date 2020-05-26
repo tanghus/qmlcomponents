@@ -15,7 +15,7 @@ models.files = models
 requester.files = requester
 storage.files = storage
 
-RESOURCES = helpers + models + requester + storage + qmldir
+RESOURCES = helpers + models + requester + storage
 
 #OTHER_FILES = qmldir
 #qmldir.files += $$_PRO_FILE_PWD_/qmldir
