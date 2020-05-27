@@ -22,7 +22,7 @@ ListItem {
     signal moveItemRequested(int from, int to)
 
     // Size of the area at the top and bottom of the list where drag-scrolling happens
-    property int scrollEdgeSize: 6
+    property int scrollEdgeSize: 10
 
     // Internal: set to -1 when drag-scrolling up and 1 when drag-scrolling down
     property int _scrollingDirection: 0
