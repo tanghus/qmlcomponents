@@ -6,6 +6,7 @@ DISTFILES = \
     ui/DraggableItem.qml \
     requester/Requester.qml \
     requester/requester.js \
+    ui/RoundButton.qml \
     models/SortedModel.qml \
     storage/Storage.qml \
     qmldir
