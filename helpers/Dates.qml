@@ -119,6 +119,11 @@ QtObject {
         return d
     }
 
+    function getTimestamp(d) {
+        d = d ? d : new Date()
+        return String(Math.round(d.getTime()/1000))
+    }
+
     // adapted from http://pythonwise.blogspot.in/2009/06/strftime-for-javascript.html
     
     /*
