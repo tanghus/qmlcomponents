@@ -4,4 +4,4 @@ Requester 0.1 requester/Requester.qml
 Storage 0.1 storage/Storage.qml
 SortedModel 0.1 models/SortedModel.qml
 DraggableItem 0.1 ui/DraggableItem.qml
-#RoundButton 0.1 ui/RoundButton.qml
+RoundButton 0.1 ui/RoundButton.qml
