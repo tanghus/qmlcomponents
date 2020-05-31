@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 2020 Thomas Tanghus
+  All rights reserved.
+
+  You may use this file under the terms of BSD license in the LICENSE
+  file distributed with the software.
+*/
+
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
