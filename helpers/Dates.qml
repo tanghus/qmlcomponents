@@ -23,7 +23,6 @@ QtObject {
         return (String(z).repeat(l) + String(n)).slice(String(n).length)
     }
     */
-    // TODO: Test zeropad instead.
     function pad(s) {
         return (s < 10) ? '0' + s : s;
     }
@@ -127,14 +126,14 @@ QtObject {
     // adapted from http://pythonwise.blogspot.in/2009/06/strftime-for-javascript.html
     
     /*
-     * To use it , save this gist in a file , import it into the desired QML
+     * To use it, import it into the desired QML
      * 
      * call as:
      * 
-     * Dates.strftime ( format , dateObj);
+     * Dates.strftime (format, dateObj);
      * 
-     */
-    /* strftime for JavaScript
+     *
+     * strftime for JavaScript
      *       Field description (taken from http://tinyurl.com/65s2qw)
      *        %a  Locale’s abbreviated weekday name.
      *        %A  Locale’s full weekday name.
@@ -179,12 +178,14 @@ QtObject {
     }
     
     function zeropad(n, size) {
+        // TODO: Test if pad() is faster, better, just as good, worse.
         n = '' + n; /* Make sure it's a string */
-        size = size || 2;
+        return pad(n)
+        /*size = size || 2;
         while (n.length < size) {
             n = '0' + n;
         }
-        return n;
+        return n*/
     }
     
     function twelve(n) {
